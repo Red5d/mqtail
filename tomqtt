@@ -1,0 +1,25 @@
+#! /usr/bin/env python
+
+import sys
+
+if len(sys.argv) < 3:
+    print("Usage: tomqtt <server> <topic>")
+    print("")
+    print("This tool accepts input via stdin.")
+    print("Example: tail -f file.log | tomqtt mqtt.example.com testing")
+    sys.exit(1)
+
+from easymqtt import EasyMQTT
+
+mqtt = EasyMQTT()
+mqtt.connect(sys.argv[1])
+
+while True:
+    line = sys.stdin.readline()
+    if line == '':
+        break
+    try:
+        mqtt.publish(sys.argv[2], line)
+    except:
+        pass
+

@@ -1,0 +1,100 @@
+<html>
+<head>
+<title>MQTail</title>
+
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+<script type="text/javascript" src="browserMqtt.js"></script>
+
+<style type="text/css">
+    [topic] td:first-child { border-right: solid lightgray 3px}
+</style>
+
+</head>
+
+<body>
+
+<div class="panel panel-default" style="border:none">
+    <div class="panel-heading" style="height: 45px">
+        <h3 class="panel-title">
+           <span style="float:left; margin-left: 20px">
+             MQTT websocket server/port: <input type="text" style="width:300px" id="server" />
+             <button class="btn btn-primary btn-xs" style="top: -2px; position: relative" id="serverconnect">Connect</button>
+           </span>
+           
+           <span style="float:right; margin-right: 20px">
+             Number of lines to keep: <input type="number" id="loglines" style="width:70px" />
+             <button class="btn btn-primary btn-xs" id="setlines" style="margin-right: 30px; top:-2px; position: relative">Set</button>
+             Topic filter: <select id="filter">
+             <option value="all">All</option>
+             </select>
+           </span>
+        </h3>
+    </div>
+    <div class="panel-body" style="border:none">
+        <table class="table table-hover table-condensed" id="headers">
+            <tbody id="data">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+  var latest = 0;
+  var loglines = 200;
+  $("#loglines").val(loglines);
+  var topics = [];
+  $("#server").val(location.hostname+":9001");
+  
+  function doConnection(){
+    var client = mqtt.connect("ws://"+$('#server').val());
+    client.subscribe("#");
+  
+    client.on("message", function(topic, payload) {
+      latest++;
+      $("#data").append("<tr topic="+topic+" msgid="+latest+"><td>"+topic+"</td><td>"+payload+"</td></tr>");
+      if (topics.indexOf(topic) < 0){
+          topics.push(topic);
+          $("#filter").append("<option value='"+topic+"'>"+topic+"</option>")
+      }
+        
+      window.scrollTo(0,document.body.scrollHeight);
+    
+      var rows = document.getElementById("data");
+      var trs = rows.getElementsByTagName("tr");
+      for (i = 0; i < trs.length; ++i) {
+          if (parseInt(trs[i].getAttribute("msgid")) < (latest - loglines)){
+              rows.removeChild(trs[i]);
+          }
+      }
+    });
+  
+    client.on("connect", function(){
+      $("#serverconnect").text("Connected");
+      $("#serverconnect").toggleClass("btn-primary");
+      $("#serverconnect").toggleClass("btn-success");
+    });
+  }
+  
+  $("#serverconnect").on("click", function(){
+      doConnection();
+  });
+  
+  $("#setlines").on("click", function(){
+      loglines = parseInt($("#loglines").val());
+  });
+  
+  $("#filter").on("change", function(){
+      if (this.value == "all"){
+          $("tr").show();
+      } else {
+          $("tr[topic!="+this.value+"]").hide();
+      }
+  });
+  
+</script>
+
+</body>
+</html>
